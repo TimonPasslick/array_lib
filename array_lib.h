@@ -8,6 +8,11 @@
 #define TIMON_PASSLICK_ARRAY_LIB
 
 template <typename T, size_t N>
+inline size_t length(const T(&)[N]) {
+  return N;
+}
+
+template <typename T, size_t N>
 struct stack_array {
   
   T c_array[N];
