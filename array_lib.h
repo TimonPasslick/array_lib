@@ -68,8 +68,6 @@ class heap_array {
       temp.size = 0;
     }
     heap_array(const heap_array&) = delete; //TODO: implement copy() method
-    
-    
 
     //You can access the elements just like with C arrays.
     //If the index is bigger than the array size, the program will crash.
