@@ -63,6 +63,14 @@ class heap_array {
     //When constructing a heap_array, you must provide its size.
     heap_array(size_t length) : begin{new T[length]}, size{length} { }
 
+    heap_array(heap_array<T>&& temp) : begin{temp.begin}, size{temp.size} {
+      temp.begin = nullptr;
+      temp.size = 0;
+    }
+    heap_array(const heap_array&) = delete; //TODO: implement copy() method
+    
+    
+
     //You can access the elements just like with C arrays.
     //If the index is bigger than the array size, the program will crash.
     T& operator [] (const size_t index) {
@@ -99,6 +107,12 @@ class growing_array {
     //For the sake of simplicity, there is just a default constructor which creates an empty growing_array.
     growing_array() : begin{nullptr}, size{0}, capacity{0} { }
 
+    growing_array(growing_array&& temp) : begin{temp.begin}, size{temp.size}, capacity{temp.capacity} {
+      temp.begin = nullptr;
+      temp.size = 0;
+    }
+    growing_array(const growing_array&&) = delete; //TODO: implement copy() method
+
     //You can access the elements just like with C arrays.
     //If the index is bigger than the array size, the program will crash.
     T& operator [] (const size_t index) {
@@ -118,7 +132,11 @@ class growing_array {
         }
         //not the usual * 2 because memory space on Arduinos is sparse
         capacity = (capacity * 3) / 2;
-        realloc(begin, capacity * sizeof(T));
+        auto new_begin = reinterpret_cast<T*>(malloc(capacity * sizeof(T)));
+        for (size_t i{0}; i != size; ++i) {
+          new_begin[i].T(begin[i]); //TODO: move begin[i]
+        }
+        begin = new_begin;
       }
       begin[size] = item;
       ++size;
