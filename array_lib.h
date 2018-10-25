@@ -132,7 +132,7 @@ class growing_array {
         capacity = (capacity * 3) / 2;
         auto new_begin = reinterpret_cast<T*>(malloc(capacity * sizeof(T)));
         for (size_t i{0}; i != size; ++i) {
-          new_begin[i].T(begin[i]); //TODO: move begin[i]
+          new_begin[i] = T(begin[i]); //TODO: move begin[i]
         }
         begin = new_begin;
       }
