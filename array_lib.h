@@ -7,6 +7,12 @@
 #ifndef TIMON_PASSLICK_ARRAY_LIB
 #define TIMON_PASSLICK_ARRAY_LIB
 
+#ifndef ARRAY_LIB_PLACEMENT_NEW_DEFINED
+//DEFINED FOR THE WHOLE INO FILE, I KNOW NO OTHER WAY
+//You can turn this off by defining the flag above
+void* operator new(size_t, void* p) { return p; } //placement new
+#endif
+
 //returns the length of a C array
 template <typename T, size_t N>
 inline constexpr size_t length(const T(&)[N]) {
@@ -16,10 +22,10 @@ inline constexpr size_t length(const T(&)[N]) {
 //an array with a size which is known before the program runs
 //You can tell with 'constexpr' in front of a variable declaration that you know also the contents of the array before the array runs and they won't change.
 template <typename T, size_t N>
-struct stack_array {
+struct StackArray {
 
   //A stack_array is a wrapper around a C array which is a public member.
-  T c_array[N];
+  T c_array[const N];
 
   //You can access the elements of the array at runtime just like with C arrays.
   //If the index is bigger than the array size, the program will crash.
@@ -51,23 +57,25 @@ struct stack_array {
 
 //an array with a size which is known when the program runs and won't change
 template <typename T>
-class heap_array {
+class HeapArray {
 
   private:
-    //A heap_array is internally a dynamic array with a stored size.
+    //A HeapArray is internally a dynamic array with a stored size.
     T* begin;
     size_t size;
 
   public:
 
-    //When constructing a heap_array, you must provide its size.
-    heap_array(size_t length) : begin{new T[length]}, size{length} { }
+    //When constructing a HeapArray, you must provide its size.
+    HeapArray(size_t length) : begin{new T[length]}, size{length} { }
 
-    heap_array(heap_array<T>&& temp) : begin{temp.begin}, size{temp.size} {
+    HeapArray(HeapArray<T>&& temp) : begin{temp.begin}, size{temp.size} {
       temp.begin = nullptr;
       temp.size = 0;
     }
-    heap_array(const heap_array&) = delete; //TODO: implement copy() method
+    HeapArray(const HeapArray&) = delete; //TODO: implement copy() method
+    
+    
 
     //You can access the elements just like with C arrays.
     //If the index is bigger than the array size, the program will crash.
@@ -83,7 +91,7 @@ class heap_array {
       return size;
     }
 
-    ~heap_array(){
+    ~HeapArray(){
       delete[] begin;
     }
 };
@@ -91,10 +99,10 @@ class heap_array {
 
 //a growing array: You can push elements onto its end.
 template <typename T>
-class growing_array {
+class GrowingArray {
 
   private:
-    //A growing_array is internally allocated heap space.
+    //A GrowingArray is internally allocated heap space.
     //It is not reallocated for every new element, so we need to store a capacity.
     T* begin;
     size_t size;
@@ -103,13 +111,13 @@ class growing_array {
 
   public:
     //For the sake of simplicity, there is just a default constructor which creates an empty growing_array.
-    growing_array() : begin{nullptr}, size{0}, capacity{0} { }
+    GrowingArray() : begin{nullptr}, size{0}, capacity{0} { }
 
-    growing_array(growing_array&& temp) : begin{temp.begin}, size{temp.size}, capacity{temp.capacity} {
+    GrowingArray(GrowingArray&& temp) : begin{temp.begin}, size{temp.size}, capacity{temp.capacity} {
       temp.begin = nullptr;
       temp.size = 0;
     }
-    growing_array(const growing_array&&) = delete; //TODO: implement copy() method
+    GrowingArray(const GrowingArray&&) = delete; //TODO: implement copy() method
 
     //You can access the elements just like with C arrays.
     //If the index is bigger than the array size, the program will crash.
@@ -129,10 +137,10 @@ class growing_array {
           capacity = 1;
         }
         //not the usual * 2 because memory space on Arduinos is sparse
-        capacity = (capacity * 3) / 2;
+        capacity = (capacity * 3 + 1) / 2;
         auto new_begin = reinterpret_cast<T*>(malloc(capacity * sizeof(T)));
         for (size_t i{0}; i != size; ++i) {
-          new_begin[i] = T(begin[i]); //TODO: move begin[i]
+          new (&new_begin[i]) T(move(begin[i])); //calling the T move constructor with begin[i] explicitly at new_begin[i]
         }
         begin = new_begin;
       }
@@ -145,11 +153,22 @@ class growing_array {
       return size;
     }
 
-    ~growing_array() {
+    ~GrowingArray() {
       for (int i = 0; i != size; ++i) {
         begin[i].~T();
       }
       free(begin);
+    }
+
+  private:
+
+    template< typename Ty > struct remove_reference       {using type = Ty;};
+    template< typename Ty > struct remove_reference<Ty&>  {using type = Ty;};
+    template< typename Ty > struct remove_reference<Ty&&> {using type = Ty;};
+
+    template <typename Ty>
+    typename remove_reference<Ty>::type&& move(Ty&& arg) {
+      return static_cast<typename remove_reference<Ty>::type&&>(arg);
     }
 };
 
