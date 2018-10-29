@@ -25,7 +25,7 @@ template <typename T, size_t N>
 struct StackArray {
 
   //A stack_array is a wrapper around a C array which is a public member.
-  T c_array[const N];
+  T c_array[N];
 
   //You can access the elements of the array at runtime just like with C arrays.
   //If the index is bigger than the array size, the program will crash.
@@ -67,15 +67,29 @@ class HeapArray {
   public:
 
     //When constructing a HeapArray, you must provide its size.
-    HeapArray(size_t length) : begin{new T[length]}, size{length} { }
+    //All elements are default initialized.
+    HeapArray(size_t length) : begin{reinterpret_cast<T*>(malloc(length))}, size{length} {
+      for (size_t i{0}; i != size; ++i) {
+        new (begin + i) T(); //Calling the default constructor explicitly at begin[i]
+      }
+    }
 
-    HeapArray(HeapArray<T>&& temp) : begin{temp.begin}, size{temp.size} {
+    HeapArray(HeapArray&& temp) : begin{temp.begin}, size{temp.size} {
       temp.begin = nullptr;
       temp.size = 0;
     }
-    HeapArray(const HeapArray&) = delete; //TODO: implement copy() method
-    
-    
+
+    //You have to copy the HeapArray explicitly. That prevents you from accidentally passing it by value.
+    HeapArray(const HeapArray&) = delete;
+    HeapArray copy() {
+      HeapArray<T> result{0};
+      result.begin = reinterpret_cast<T*>(malloc(size));
+      result.size = size;
+      for (size_t i{0}; i != size; ++i) {
+        new (result.begin + i) T(begin[i]); //calling the copy constructor with begin[i] explicitly at result.begin[i]
+      }
+      return result;
+    }
 
     //You can access the elements just like with C arrays.
     //If the index is bigger than the array size, the program will crash.
@@ -92,7 +106,10 @@ class HeapArray {
     }
 
     ~HeapArray(){
-      delete[] begin;
+      for (int i = 0; i != size; ++i) {
+        begin[i].~T();
+      }
+      free(begin);
     }
 };
 
@@ -117,7 +134,19 @@ class GrowingArray {
       temp.begin = nullptr;
       temp.size = 0;
     }
-    GrowingArray(const GrowingArray&&) = delete; //TODO: implement copy() method
+    
+    //You have to copy the HeapArray explicitly. That prevents you from accidentally passing it by value.
+    GrowingArray(const GrowingArray&) = delete;
+    GrowingArray copy() {
+      GrowingArray<T> result;
+      result.begin = reinterpret_cast<T*>(malloc(size));
+      result.size = size;
+      result.capacity = size;
+      for (size_t i{0}; i != size; ++i) {
+        new (result.begin + i) T(begin[i]); //calling the copy constructor with begin[i] explicitly at result.begin[i]
+      }
+      return result;
+    }
 
     //You can access the elements just like with C arrays.
     //If the index is bigger than the array size, the program will crash.
@@ -140,7 +169,7 @@ class GrowingArray {
         capacity = (capacity * 3 + 1) / 2;
         auto new_begin = reinterpret_cast<T*>(malloc(capacity * sizeof(T)));
         for (size_t i{0}; i != size; ++i) {
-          new (&new_begin[i]) T(move(begin[i])); //calling the T move constructor with begin[i] explicitly at new_begin[i]
+          new (new_begin + i) T(move(begin[i])); //calling the move constructor with begin[i] explicitly at new_begin[i]
         }
         begin = new_begin;
       }
