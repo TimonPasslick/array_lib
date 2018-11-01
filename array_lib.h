@@ -37,7 +37,7 @@ struct StackArray {
   }
 
   //You can also access the elements of the array before the program runs. Don't forget to declare the variable 'constexpr', though.
-  constexpr T operator [] (const size_t index) {
+  constexpr const T& operator [] (const size_t index) {
     return (index < N) ? c_array[index] : constexpr_stack_array_index_out_of_bounds();
   }
 
