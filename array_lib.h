@@ -37,7 +37,7 @@ struct StackArray {
   }
 
   //You can also access the elements of the array before the program runs. Don't forget to declare the variable 'constexpr', though.
-  constexpr const T& operator [] (const size_t index) {
+  constexpr const T& operator [] (const size_t index) const {
     return (index < N) ? c_array[index] : constexpr_stack_array_index_out_of_bounds();
   }
 
@@ -68,7 +68,7 @@ class HeapArray {
 
     //When constructing a HeapArray, you must provide its size.
     //All elements are default initialized.
-    HeapArray(size_t length) : begin{reinterpret_cast<T*>(malloc(length))}, size{length} {
+    HeapArray(size_t length) : begin{reinterpret_cast<T*>(malloc(length * sizeof(T)))}, size{length} {
       for (size_t i{0}; i != size; ++i) {
         new (begin + i) T(); //Calling the default constructor explicitly at begin[i]
       }
@@ -83,7 +83,7 @@ class HeapArray {
     HeapArray(const HeapArray&) = delete;
     HeapArray copy() {
       HeapArray<T> result{0};
-      result.begin = reinterpret_cast<T*>(malloc(size));
+      result.begin = reinterpret_cast<T*>(malloc(size * sizeof(T)));
       result.size = size;
       for (size_t i{0}; i != size; ++i) {
         new (result.begin + i) T(begin[i]); //calling the copy constructor with begin[i] explicitly at result.begin[i]
@@ -139,7 +139,7 @@ class GrowingArray {
     GrowingArray(const GrowingArray&) = delete;
     GrowingArray copy() {
       GrowingArray<T> result;
-      result.begin = reinterpret_cast<T*>(malloc(size));
+      result.begin = reinterpret_cast<T*>(malloc(size * sizeof(T)));
       result.size = size;
       result.capacity = size;
       for (size_t i{0}; i != size; ++i) {
