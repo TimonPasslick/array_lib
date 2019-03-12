@@ -68,11 +68,7 @@ class HeapArray {
 
     //When constructing a HeapArray, you must provide its size.
     //All elements are default initialized.
-    HeapArray(size_t length) : begin{reinterpret_cast<T*>(malloc(length * sizeof(T)))}, size{length} {
-      for (size_t i{0}; i != size; ++i) {
-        new (begin + i) T(); //Calling the default constructor explicitly at begin[i]
-      }
-    }
+    HeapArray(size_t length) : begin{new T[length]}, size{length} { }
 
     HeapArray(HeapArray&& temp) : begin{temp.begin}, size{temp.size} {
       temp.begin = nullptr;
@@ -83,7 +79,7 @@ class HeapArray {
     HeapArray(const HeapArray&) = delete;
     HeapArray copy() {
       HeapArray<T> result{0};
-      result.begin = reinterpret_cast<T*>(malloc(size * sizeof(T)));
+      result.begin = new T[size];
       result.size = size;
       for (size_t i{0}; i != size; ++i) {
         new (result.begin + i) T(begin[i]); //calling the copy constructor with begin[i] explicitly at result.begin[i]
@@ -106,10 +102,7 @@ class HeapArray {
     }
 
     ~HeapArray(){
-      for (int i = 0; i != size; ++i) {
-        begin[i].~T();
-      }
-      free(begin);
+      delete[] begin;
     }
 };
 
